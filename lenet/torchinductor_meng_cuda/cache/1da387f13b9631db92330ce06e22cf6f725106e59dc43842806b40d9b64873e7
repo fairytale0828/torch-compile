@@ -1,0 +1,23 @@
+{
+    "system": {
+        "device": {
+            "name": "NVIDIA GeForce RTX 3060"
+        },
+        "version": {
+            "cuda": "12.1",
+            "triton": "2.1.0"
+        },
+        "other": {
+            "allow_tf32": false
+        },
+        "hash": "1da387f13b9631db92330ce06e22cf6f725106e59dc43842806b40d9b64873e7"
+    },
+    "cache": {
+        "((torch.Size([120, 1]), (1, 120), torch.float32), (torch.Size([1, 256]), (256, 1), torch.float32), <OpOverloadPacket(op='aten.mm')>, None, False)": false,
+        "((torch.Size([1, 120]), (120, 1), torch.float32), (torch.Size([120, 256]), (256, 1), torch.float32), <OpOverloadPacket(op='aten.mm')>, None, False)": false,
+        "((torch.Size([84, 1]), (1, 84), torch.float32), (torch.Size([1, 120]), (120, 1), torch.float32), <OpOverloadPacket(op='aten.mm')>, None, False)": false,
+        "((torch.Size([1, 84]), (84, 1), torch.float32), (torch.Size([84, 120]), (120, 1), torch.float32), <OpOverloadPacket(op='aten.mm')>, None, False)": false,
+        "((torch.Size([10, 1]), (1, 10), torch.float32), (torch.Size([1, 84]), (84, 1), torch.float32), <OpOverloadPacket(op='aten.mm')>, None, False)": false,
+        "((torch.Size([1, 10]), (10, 1), torch.float32), (torch.Size([10, 84]), (84, 1), torch.float32), <OpOverloadPacket(op='aten.mm')>, None, False)": false
+    }
+}

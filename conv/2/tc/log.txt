@@ -1,0 +1,178 @@
+// -----// IR Dump Before OneShotBufferize (one-shot-bufferize) //----- //
+#map = affine_map<(d0)[s0] -> (d0 + s0)>
+module {
+  func.func @triton__0d1d2de(%arg0: i64, %arg1: i64, %arg2: i32) attributes {llvm.emit_c_interface} {
+    %c0 = arith.constant 0 : index
+    %c784 = arith.constant 784 : index
+    %c1 = arith.constant 1 : index
+    %c1024 = arith.constant 1024 : index
+    %c1024_i32 = arith.constant 1024 : i32
+    %cst = arith.constant 0.000000e+00 : f32
+    %c0_0 = arith.constant 0 : index
+    %0 = arith.index_cast %c0_0 : index to i32
+    %1 = arith.muli %0, %c1024_i32 : i32
+    %2 = tensor.empty() : tensor<1024xi32>
+    %3 = scf.for %arg3 = %c0 to %c1024 step %c1 iter_args(%arg4 = %2) -> (tensor<1024xi32>) {
+      %20 = arith.index_cast %arg3 : index to i32
+      %inserted = tensor.insert %20 into %arg4[%arg3] : tensor<1024xi32>
+      scf.yield %inserted : tensor<1024xi32>
+    }
+    %4 = arith.index_cast %1 : i32 to index
+    %5 = arith.addi %4, %c1024 : index
+    %6 = arith.maxsi %4, %c784 : index
+    %7 = arith.minsi %5, %6 : index
+    %8 = arith.subi %7, %4 : index
+    %extracted = tensor.extract %3[%c0] : tensor<1024xi32>
+    %9 = arith.addi %1, %extracted : i32
+    %10 = arith.index_cast %9 : i32 to index
+    %11 = llvm.inttoptr %arg0 : i64 to !llvm.ptr
+    %view_memref = aux.view %11 to offset: [%10], sizes: [%8], strides: [1] : !llvm.ptr to memref<?xf32, #map>
+    %12 = bufferization.to_tensor %view_memref restrict writable : memref<?xf32, #map>
+    %13 = tensor.empty(%8) : tensor<?xf32>
+    %14 = linalg.copy ins(%12 : tensor<?xf32>) outs(%13 : tensor<?xf32>) -> tensor<?xf32>
+    %15 = tensor.empty() : tensor<1024xf32>
+    %16 = linalg.fill ins(%cst : f32) outs(%15 : tensor<1024xf32>) -> tensor<1024xf32>
+    %inserted_slice = tensor.insert_slice %14 into %16[0] [%8] [1] : tensor<?xf32> into tensor<1024xf32>
+    %17 = llvm.inttoptr %arg1 : i64 to !llvm.ptr
+    %view_memref_1 = aux.view %17 to offset: [0], sizes: [1], strides: [1] : !llvm.ptr to memref<1xf32>
+    %18 = memref.load %view_memref_1[%c0] : memref<1xf32>
+    %19 = linalg.fill ins(%18 : f32) outs(%15 : tensor<1024xf32>) -> tensor<1024xf32>
+    %mapped = linalg.map { arith.addf } ins(%inserted_slice, %19 : tensor<1024xf32>, tensor<1024xf32>) outs(%15 : tensor<1024xf32>)
+    %view_memref_2 = aux.view %11 to offset: [%10], sizes: [%8], strides: [1] : !llvm.ptr to memref<?xf32, #map>
+    %extracted_slice = tensor.extract_slice %mapped[0] [%8] [1] : tensor<1024xf32> to tensor<?xf32>
+    bufferization.materialize_in_destination %extracted_slice in writable %view_memref_2 : (tensor<?xf32>, memref<?xf32, #map>) -> ()
+    return
+  }
+}
+
+
+// -----// IR Dump Before LinalgLowerToLoops (convert-linalg-to-loops) //----- //
+#map = affine_map<(d0)[s0] -> (d0 + s0)>
+module {
+  func.func @triton__0d1d2de(%arg0: i64, %arg1: i64, %arg2: i32) attributes {llvm.emit_c_interface} {
+    %c0 = arith.constant 0 : index
+    %c784 = arith.constant 784 : index
+    %c1 = arith.constant 1 : index
+    %c1024 = arith.constant 1024 : index
+    %c1024_i32 = arith.constant 1024 : i32
+    %cst = arith.constant 0.000000e+00 : f32
+    %c0_0 = arith.constant 0 : index
+    %0 = arith.index_cast %c0_0 : index to i32
+    %1 = arith.muli %0, %c1024_i32 : i32
+    %alloc = memref.alloc() {alignment = 64 : i64} : memref<1024xi32>
+    %2 = scf.for %arg3 = %c0 to %c1024 step %c1 iter_args(%arg4 = %alloc) -> (memref<1024xi32>) {
+      %14 = arith.index_cast %arg3 : index to i32
+      memref.store %14, %arg4[%arg3] : memref<1024xi32>
+      scf.yield %arg4 : memref<1024xi32>
+    }
+    %3 = arith.index_cast %1 : i32 to index
+    %4 = arith.addi %3, %c1024 : index
+    %5 = arith.maxsi %3, %c784 : index
+    %6 = arith.minsi %4, %5 : index
+    %7 = arith.subi %6, %3 : index
+    %8 = memref.load %2[%c0] : memref<1024xi32>
+    %9 = arith.addi %1, %8 : i32
+    %10 = arith.index_cast %9 : i32 to index
+    %11 = llvm.inttoptr %arg0 : i64 to !llvm.ptr
+    %view_memref = aux.view %11 to offset: [%10], sizes: [%7], strides: [1] : !llvm.ptr to memref<?xf32, #map>
+    %alloc_1 = memref.alloc(%7) {alignment = 64 : i64} : memref<?xf32>
+    linalg.copy ins(%view_memref : memref<?xf32, #map>) outs(%alloc_1 : memref<?xf32>)
+    %alloc_2 = memref.alloc() {alignment = 64 : i64} : memref<1024xf32>
+    %alloc_3 = memref.alloc() {alignment = 64 : i64} : memref<1024xf32>
+    linalg.fill ins(%cst : f32) outs(%alloc_3 : memref<1024xf32>)
+    %subview = memref.subview %alloc_3[0] [%7] [1] : memref<1024xf32> to memref<?xf32, strided<[1]>>
+    memref.copy %alloc_1, %subview : memref<?xf32> to memref<?xf32, strided<[1]>>
+    %12 = llvm.inttoptr %arg1 : i64 to !llvm.ptr
+    %view_memref_4 = aux.view %12 to offset: [0], sizes: [1], strides: [1] : !llvm.ptr to memref<1xf32>
+    %13 = memref.load %view_memref_4[%c0] : memref<1xf32>
+    linalg.fill ins(%13 : f32) outs(%alloc_2 : memref<1024xf32>)
+    linalg.map { arith.addf } ins(%alloc_3, %alloc_2 : memref<1024xf32>, memref<1024xf32>) outs(%alloc_2 : memref<1024xf32>)
+    %view_memref_5 = aux.view %11 to offset: [%10], sizes: [%7], strides: [1] : !llvm.ptr to memref<?xf32, #map>
+    %subview_6 = memref.subview %alloc_2[0] [%7] [1] : memref<1024xf32> to memref<?xf32, strided<[1]>>
+    memref.copy %subview_6, %view_memref_5 : memref<?xf32, strided<[1]>> to memref<?xf32, #map>
+    return
+  }
+}
+
+
+// -----// IR Dump Before MemRefToSCFPass (convert-memref-to-scf) //----- //
+#map = affine_map<(d0)[s0] -> (d0 + s0)>
+module {
+  func.func @triton__0d1d2de(%arg0: i64, %arg1: i64, %arg2: i32) attributes {llvm.emit_c_interface} {
+    %c784 = arith.constant 784 : index
+    %c1024 = arith.constant 1024 : index
+    %c0 = arith.constant 0 : index
+    %c1 = arith.constant 1 : index
+    %cst = arith.constant 0.000000e+00 : f32
+    %alloc = memref.alloc() {alignment = 64 : i64} : memref<1024xi32>
+    %0 = scf.for %arg3 = %c0 to %c1024 step %c1 iter_args(%arg4 = %alloc) -> (memref<1024xi32>) {
+      %6 = arith.index_cast %arg3 : index to i32
+      memref.store %6, %arg4[%arg3] : memref<1024xi32>
+      scf.yield %arg4 : memref<1024xi32>
+    }
+    %1 = memref.load %0[%c0] : memref<1024xi32>
+    %2 = arith.index_cast %1 : i32 to index
+    %3 = llvm.inttoptr %arg0 : i64 to !llvm.ptr
+    %view_memref = aux.view %3 to offset: [%2], sizes: [%c784], strides: [1] : !llvm.ptr to memref<?xf32, #map>
+    %alloc_0 = memref.alloc(%c784) {alignment = 64 : i64} : memref<?xf32>
+    scf.for %arg3 = %c0 to %c784 step %c1 {
+      %6 = memref.load %view_memref[%arg3] : memref<?xf32, #map>
+      memref.store %6, %alloc_0[%arg3] : memref<?xf32>
+    }
+    %alloc_1 = memref.alloc() {alignment = 64 : i64} : memref<1024xf32>
+    %alloc_2 = memref.alloc() {alignment = 64 : i64} : memref<1024xf32>
+    scf.for %arg3 = %c0 to %c1024 step %c1 {
+      memref.store %cst, %alloc_2[%arg3] : memref<1024xf32>
+    }
+    %subview = memref.subview %alloc_2[0] [%c784] [1] : memref<1024xf32> to memref<?xf32, strided<[1]>>
+    memref.copy %alloc_0, %subview : memref<?xf32> to memref<?xf32, strided<[1]>>
+    %4 = llvm.inttoptr %arg1 : i64 to !llvm.ptr
+    %view_memref_3 = aux.view %4 to offset: [0], sizes: [1], strides: [1] : !llvm.ptr to memref<1xf32>
+    %5 = memref.load %view_memref_3[%c0] : memref<1xf32>
+    scf.for %arg3 = %c0 to %c1024 step %c1 {
+      memref.store %5, %alloc_1[%arg3] : memref<1024xf32>
+    }
+    scf.for %arg3 = %c0 to %c1024 step %c1 {
+      %6 = memref.load %alloc_2[%arg3] : memref<1024xf32>
+      %7 = memref.load %alloc_1[%arg3] : memref<1024xf32>
+      %8 = arith.addf %6, %7 : f32
+      memref.store %8, %alloc_1[%arg3] : memref<1024xf32>
+    }
+    %view_memref_4 = aux.view %3 to offset: [%2], sizes: [%c784], strides: [1] : !llvm.ptr to memref<?xf32, #map>
+    %subview_5 = memref.subview %alloc_1[0] [%c784] [1] : memref<1024xf32> to memref<?xf32, strided<[1]>>
+    memref.copy %subview_5, %view_memref_4 : memref<?xf32, strided<[1]>> to memref<?xf32, #map>
+    return
+  }
+}
+
+
+PLEASE submit a bug report to https://github.com/llvm/llvm-project/issues/ and include the crash backtrace.
+Stack dump:
+0.	Program arguments: triton-community-opt --one-shot-bufferize --convert-linalg-to-loops --convert-memref-to-scf --convert-scf-to-cf --convert-math-to-llvm --expand-strided-metadata --finalize-memref-to-llvm --convert-func-to-llvm --lower-affine --convert-arith-to-llvm --convert-index-to-llvm --aux-eliminater --canonicalize --cse --reconcile-unrealized-casts test.mlir --mlir-print-ir-before-all
+ #0 0x000055d5cbf7d6ff llvm::sys::PrintStackTrace(llvm::raw_ostream&, int) (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x4ed06ff)
+ #1 0x000055d5cbf7afe4 SignalHandler(int) Signals.cpp:0:0
+ #2 0x00007f8e22ba2420 __restore_rt (/lib/x86_64-linux-gnu/libpthread.so.0+0x14420)
+ #3 0x000055d5c78bc03b mlir::arith::SubIOp::getResult() (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x80f03b)
+ #4 0x000055d5c7683ee8 (anonymous namespace)::MemRefCopyPattern::matchAndRewrite(mlir::memref::CopyOp, mlir::memref::CopyOpAdaptor, mlir::ConversionPatternRewriter&) const /home/meng/torch-compiler/triton-community/lib/Conversion/MemRefToSCF/MemRefToSCF.cpp:65:78
+ #5 0x000055d5c768484e mlir::OpConversionPattern<mlir::memref::CopyOp>::matchAndRewrite(mlir::Operation*, llvm::ArrayRef<mlir::Value>, mlir::ConversionPatternRewriter&) const /home/meng/torch-compiler/llvm-project/mlir/include/mlir/Transforms/DialectConversion.h:536:77
+ #6 0x000055d5cb99d8ba mlir::ConversionPattern::matchAndRewrite(mlir::Operation*, mlir::PatternRewriter&) const (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x48f08ba)
+ #7 0x000055d5cb9ec0b8 mlir::PatternApplicator::matchAndRewrite(mlir::Operation*, mlir::PatternRewriter&, llvm::function_ref<bool (mlir::Pattern const&)>, llvm::function_ref<void (mlir::Pattern const&)>, llvm::function_ref<mlir::LogicalResult (mlir::Pattern const&)>) (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x493f0b8)
+ #8 0x000055d5cb9ad259 (anonymous namespace)::OperationLegalizer::legalize(mlir::Operation*, mlir::ConversionPatternRewriter&) DialectConversion.cpp:0:0
+ #9 0x000055d5cb9adbe7 (anonymous namespace)::OperationConverter::convertOperations(llvm::ArrayRef<mlir::Operation*>, llvm::function_ref<void (mlir::Diagnostic&)>) DialectConversion.cpp:0:0
+#10 0x000055d5cb9afd64 mlir::applyPartialConversion(mlir::Operation*, mlir::ConversionTarget const&, mlir::FrozenRewritePatternSet const&, llvm::DenseSet<mlir::Operation*, llvm::DenseMapInfo<mlir::Operation*, void>>*) (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x4902d64)
+#11 0x000055d5c7682f2d (anonymous namespace)::MemRefToSCFPass::runOnOperation() /home/meng/torch-compiler/triton-community/lib/Conversion/MemRefToSCF/MemRefToSCF.cpp:104:15
+#12 0x000055d5c974b27e mlir::detail::OpToOpPassAdaptor::run(mlir::Pass*, mlir::Operation*, mlir::AnalysisManager, bool, unsigned int) (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x269e27e)
+#13 0x000055d5c974b75a mlir::detail::OpToOpPassAdaptor::runPipeline(mlir::OpPassManager&, mlir::Operation*, mlir::AnalysisManager, bool, unsigned int, mlir::PassInstrumentor*, mlir::PassInstrumentation::PipelineParentInfo const*) (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x269e75a)
+#14 0x000055d5c974bf84 mlir::PassManager::run(mlir::Operation*) (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x269ef84)
+#15 0x000055d5c973e173 performActions(llvm::raw_ostream&, std::shared_ptr<llvm::SourceMgr> const&, mlir::MLIRContext*, mlir::MlirOptMainConfig const&) MlirOptMain.cpp:0:0
+#16 0x000055d5c973f644 processBuffer(llvm::raw_ostream&, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer>>, mlir::MlirOptMainConfig const&, mlir::DialectRegistry&, llvm::ThreadPool*) MlirOptMain.cpp:0:0
+#17 0x000055d5c973f7f4 mlir::LogicalResult llvm::function_ref<mlir::LogicalResult (std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer>>, llvm::raw_ostream&)>::callback_fn<mlir::MlirOptMain(llvm::raw_ostream&, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer>>, mlir::DialectRegistry&, mlir::MlirOptMainConfig const&)::'lambda'(std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer>>, llvm::raw_ostream&)>(long, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer>>, llvm::raw_ostream&) MlirOptMain.cpp:0:0
+#18 0x000055d5cbea9404 mlir::splitAndProcessBuffer(std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer>>, llvm::function_ref<mlir::LogicalResult (std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer>>, llvm::raw_ostream&)>, llvm::raw_ostream&, bool, bool) (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x4dfc404)
+#19 0x000055d5c9737bf7 mlir::MlirOptMain(llvm::raw_ostream&, std::unique_ptr<llvm::MemoryBuffer, std::default_delete<llvm::MemoryBuffer>>, mlir::DialectRegistry&, mlir::MlirOptMainConfig const&) (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x268abf7)
+#20 0x000055d5c973f941 mlir::MlirOptMain(int, char**, llvm::StringRef, llvm::StringRef, mlir::DialectRegistry&) (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x2692941)
+#21 0x000055d5c973fda6 mlir::MlirOptMain(int, char**, llvm::StringRef, mlir::DialectRegistry&) (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x2692da6)
+#22 0x000055d5c740b062 std::vector<std::unique_ptr<mlir::DialectExtensionBase, std::default_delete<mlir::DialectExtensionBase>>, std::allocator<std::unique_ptr<mlir::DialectExtensionBase, std::default_delete<mlir::DialectExtensionBase>>>>::~vector() /usr/include/c++/9/bits/stl_vector.h:677:15
+#23 0x000055d5c740b062 mlir::DialectRegistry::~DialectRegistry() /home/meng/torch-compiler/llvm-project/mlir/include/mlir/IR/DialectRegistry.h:139:7
+#24 0x000055d5c740b062 main /home/meng/torch-compiler/triton-community/bin/triton-community-opt.cpp:14:0
+#25 0x00007f8e22626083 __libc_start_main /build/glibc-LcI20x/glibc-2.31/csu/../csu/libc-start.c:342:3
+#26 0x000055d5c74a24de _start (/home/meng/torch-compiler/triton-community/triton/python/build/cmake.linux-x86_64-cpython-3.10/third_party/triton_community/bin/triton-community-opt+0x3f54de)

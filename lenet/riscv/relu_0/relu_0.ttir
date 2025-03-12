@@ -1,0 +1,26 @@
+module {
+  tt.func public @triton__0d1d2de(%arg0: !tt.ptr<f32, 1> {tt.divisibility = 16 : i32}, %arg1: !tt.ptr<f32, 1> {tt.divisibility = 16 : i32}, %arg2: i32 {tt.divisibility = 16 : i32, tt.max_divisibility = 16 : i32}) attributes {noinline = false} {
+    %cst = arith.constant dense<0.000000e+00> : tensor<4096xf32>
+    %cst_0 = arith.constant dense<576> : tensor<4096xi32>
+    %cst_1 = arith.constant dense<3456> : tensor<4096xi32>
+    %c4096_i32 = arith.constant 4096 : i32
+    %0 = tt.get_program_id x : i32
+    %1 = arith.muli %0, %c4096_i32 : i32
+    %2 = tt.make_range {end = 4096 : i32, start = 0 : i32} : tensor<4096xi32>
+    %3 = tt.splat %1 : (i32) -> tensor<4096xi32>
+    %4 = arith.addi %3, %2 : tensor<4096xi32>
+    %5 = arith.cmpi slt, %4, %cst_1 : tensor<4096xi32>
+    %6 = arith.divsi %4, %cst_0 : tensor<4096xi32>
+    %7 = tt.splat %arg0 : (!tt.ptr<f32, 1>) -> tensor<4096x!tt.ptr<f32, 1>>
+    %8 = tt.addptr %7, %4 : tensor<4096x!tt.ptr<f32, 1>>, tensor<4096xi32>
+    %9 = tt.load %8, %5 {cache = 1 : i32, evict = 1 : i32, isVolatile = false} : tensor<4096xf32>
+    %10 = tt.splat %arg1 : (!tt.ptr<f32, 1>) -> tensor<4096x!tt.ptr<f32, 1>>
+    %11 = tt.addptr %10, %6 : tensor<4096x!tt.ptr<f32, 1>>, tensor<4096xi32>
+    %12 = tt.load %11, %5 {cache = 1 : i32, evict = 3 : i32, isVolatile = false} : tensor<4096xf32>
+    %13 = arith.addf %9, %12 : tensor<4096xf32>
+    %14 = arith.cmpf ogt, %13, %cst : tensor<4096xf32>
+    %15 = arith.select %14, %13, %cst : tensor<4096xi1>, tensor<4096xf32>
+    tt.store %8, %15, %5 {cache = 1 : i32, evict = 1 : i32} : tensor<4096xf32>
+    tt.return
+  }
+}
